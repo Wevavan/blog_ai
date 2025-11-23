@@ -215,28 +215,79 @@ function convertMarkdownToHTML(markdown) {
 
   let html = markdown;
 
-  // Headers
+  // Headers (ordre important: du plus spécifique au moins spécifique)
+  html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
   html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
 
-  // Bold
+  // Bold (avant italic pour éviter les conflits)
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
   // Italic
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-  // Lists
-  html = html.replace(/^\- (.+)$/gim, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  // Code inline
+  html = html.replace(/`(.+?)`/g, '<code>$1</code>');
 
-  // Paragraphs
-  html = html.split('\n\n').map(p => {
-    if (!p.startsWith('<') && p.trim() !== '') {
-      return `<p>${p}</p>`;
+  // Links
+  html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+
+  // Lists - mieux gérer les listes
+  const lines = html.split('\n');
+  let inList = false;
+  const processedLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.match(/^[\-\*] /)) {
+      if (!inList) {
+        processedLines.push('<ul>');
+        inList = true;
+      }
+      processedLines.push(line.replace(/^[\-\*] (.+)$/, '<li>$1</li>'));
+    } else if (line.match(/^\d+\. /)) {
+      if (!inList) {
+        processedLines.push('<ol>');
+        inList = true;
+      }
+      processedLines.push(line.replace(/^\d+\. (.+)$/, '<li>$1</li>'));
+    } else {
+      if (inList) {
+        processedLines.push('</ul>');
+        inList = false;
+      }
+      processedLines.push(line);
     }
-    return p;
-  }).join('\n');
+  }
+
+  if (inList) {
+    processedLines.push('</ul>');
+  }
+
+  html = processedLines.join('\n');
+
+  // Paragraphs - séparer les blocs
+  const blocks = html.split('\n\n');
+  const processedBlocks = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+
+    // Ne pas envelopper les éléments HTML existants
+    if (block.startsWith('<h') ||
+        block.startsWith('<ul') ||
+        block.startsWith('<ol') ||
+        block.startsWith('<li') ||
+        block.startsWith('<blockquote')) {
+      return block;
+    }
+
+    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+  });
+
+  html = processedBlocks.filter(b => b).join('\n\n');
 
   return html;
 }

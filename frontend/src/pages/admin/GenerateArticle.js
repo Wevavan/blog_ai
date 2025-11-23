@@ -73,10 +73,19 @@ function GenerateArticle() {
     setError('');
 
     try {
-      await adminService.createArticle({
-        ...generatedArticle,
+      // Préparer les données: utiliser htmlContent comme content
+      const articleData = {
+        title: generatedArticle.title,
+        content: generatedArticle.htmlContent || generatedArticle.content,
+        excerpt: generatedArticle.excerpt,
+        category: generatedArticle.category,
+        tags: generatedArticle.tags,
+        author: generatedArticle.author,
+        metaDescription: generatedArticle.metaDescription,
         published,
-      });
+      };
+
+      await adminService.createArticle(articleData);
       navigate('/admin/articles');
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la sauvegarde');
