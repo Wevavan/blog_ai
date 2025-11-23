@@ -27,8 +27,8 @@ export const authService = {
   // Connexion
   login: async (email, password) => {
     const response = await authAPI.post('/login', { email, password });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    if (response.data.data && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data));
     }
     return response.data;
@@ -42,8 +42,8 @@ export const authService = {
       password,
       role,
     });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    if (response.data.data && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data));
     }
     return response.data;
