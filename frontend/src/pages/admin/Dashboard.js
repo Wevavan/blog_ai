@@ -9,6 +9,8 @@ function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [converting, setConverting] = useState(false);
+  const [conversionResult, setConversionResult] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -23,6 +25,24 @@ function Dashboard() {
       setError(err.response?.data?.message || 'Erreur de chargement des statistiques');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConvertArticles = async () => {
+    if (!window.confirm('Voulez-vous convertir tous les articles Markdown en HTML ? Cette action mettra à jour tous les articles contenant du Markdown brut.')) {
+      return;
+    }
+
+    try {
+      setConverting(true);
+      setConversionResult(null);
+      const response = await adminService.convertArticles();
+      setConversionResult(response.data);
+      loadStats(); // Recharger les stats
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erreur lors de la conversion');
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -48,6 +68,28 @@ function Dashboard() {
         <h1>Dashboard Admin</h1>
         <p>Bienvenue, {user?.username}</p>
       </div>
+
+      {conversionResult && (
+        <div className="alert alert-success">
+          ✅ Conversion terminée ! {conversionResult.converted} article(s) converti(s), {conversionResult.skipped} ignoré(s)
+        </div>
+      )}
+
+      {user?.role === 'admin' && (
+        <div style={{ marginBottom: '35px' }}>
+          <button
+            onClick={handleConvertArticles}
+            disabled={converting}
+            className="btn-secondary"
+            style={{ width: 'auto' }}
+          >
+            {converting ? '⚙️ Conversion en cours...' : '🔄 Convertir les articles Markdown en HTML'}
+          </button>
+          <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '10px' }}>
+            Convertit tous les articles existants avec du Markdown brut (##, **) en HTML formaté
+          </p>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card">

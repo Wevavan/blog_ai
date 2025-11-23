@@ -41,6 +41,12 @@ export const adminService = {
     return response.data;
   },
 
+  // Convertir les articles Markdown en HTML
+  convertArticles: async () => {
+    const response = await adminAPI.post('/convert-articles');
+    return response.data;
+  },
+
   // Obtenir tous les articles (y compris brouillons)
   getAllArticles: async (page = 1, limit = 20, published) => {
     const params = { page, limit };

@@ -6,7 +6,8 @@ const {
   getAllArticles,
   updateArticle,
   deleteArticle,
-  getStats
+  getStats,
+  convertArticlesToHTML
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -15,6 +16,9 @@ router.use(protect);
 
 // Stats - Admin et Editor
 router.get('/stats', authorize('admin', 'editor'), getStats);
+
+// Conversion Markdown -> HTML - Admin uniquement
+router.post('/convert-articles', authorize('admin'), convertArticlesToHTML);
 
 // Génération d'article avec IA - Admin et Editor
 router.post('/generate', authorize('admin', 'editor', 'author'), generateArticle);

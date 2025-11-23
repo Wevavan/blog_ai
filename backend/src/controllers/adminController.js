@@ -209,6 +209,45 @@ exports.getStats = async (req, res) => {
   }
 };
 
+// @desc    Convertir les articles Markdown en HTML
+// @route   POST /api/admin/convert-articles
+// @access  Private (Admin only)
+exports.convertArticlesToHTML = async (req, res) => {
+  try {
+    const articles = await Article.find({});
+    let converted = 0;
+    let skipped = 0;
+
+    for (const article of articles) {
+      // Vérifier si le contenu contient du markdown brut
+      if (article.content.includes('##') || article.content.includes('**')) {
+        const htmlContent = convertMarkdownToHTML(article.content);
+        article.content = htmlContent;
+        await article.save();
+        converted++;
+      } else {
+        skipped++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Conversion terminée',
+      data: {
+        total: articles.length,
+        converted,
+        skipped
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la conversion',
+      error: error.message
+    });
+  }
+};
+
 // Fonction helper pour convertir Markdown en HTML
 function convertMarkdownToHTML(markdown) {
   if (!markdown) return '';
