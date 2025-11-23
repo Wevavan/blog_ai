@@ -6,7 +6,7 @@ const aiService = require('../services/aiService');
 // @access  Private (Admin/Editor)
 exports.generateArticle = async (req, res) => {
   try {
-    const { topic, category, tone, length } = req.body;
+    const { topic, category, tone, length, wordCount } = req.body;
 
     if (!topic) {
       return res.status(400).json({
@@ -19,7 +19,8 @@ exports.generateArticle = async (req, res) => {
     const generatedContent = await aiService.generateArticle(topic, {
       category,
       tone,
-      length
+      length,
+      wordCount: wordCount ? parseInt(wordCount) : null
     });
 
     // Convertir le Markdown en HTML (simple conversion)

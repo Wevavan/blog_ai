@@ -3,24 +3,27 @@
 
 class AIService {
   constructor() {
-    this.provider = process.env.AI_PROVIDER || 'openai'; // 'openai' ou 'anthropic'
-    this.apiKey = process.env.AI_API_KEY;
+    this.provider = process.env.AI_PROVIDER || 'openai'; // 'openai', 'anthropic' ou 'demo'
+    this.openaiKey = process.env.OPENAI_API_KEY;
+    this.anthropicKey = process.env.ANTHROPIC_API_KEY;
   }
 
   async generateArticle(topic, options = {}) {
     const {
       category = 'IA Générale',
       tone = 'informatif',
-      length = 'moyen'
+      length = 'moyen',
+      wordCount = null // Nombre de mots personnalisé
     } = options;
 
     try {
-      if (this.provider === 'openai') {
-        return await this.generateWithOpenAI(topic, category, tone, length);
-      } else if (this.provider === 'anthropic') {
-        return await this.generateWithAnthropic(topic, category, tone, length);
+      if (this.provider === 'openai' && this.openaiKey && this.openaiKey !== 'your_openai_api_key_here') {
+        return await this.generateWithOpenAI(topic, category, tone, length, wordCount);
+      } else if (this.provider === 'anthropic' && this.anthropicKey && this.anthropicKey !== 'your_anthropic_api_key_here') {
+        return await this.generateWithAnthropic(topic, category, tone, length, wordCount);
       } else {
         // Fallback: génération de contenu de démonstration
+        console.log('Mode démo activé - Aucune clé API configurée');
         return this.generateDemoArticle(topic, category);
       }
     } catch (error) {
@@ -30,28 +33,30 @@ class AIService {
     }
   }
 
-  async generateWithOpenAI(topic, category, tone, length) {
-    // Si l'API Key n'est pas configurée, utiliser le mode démo
-    if (!this.apiKey) {
-      console.log('OpenAI API Key non configurée, utilisation du mode démo');
-      return this.generateDemoArticle(topic, category);
-    }
-
+  async generateWithOpenAI(topic, category, tone, length, wordCount) {
     const axios = require('axios');
 
-    const lengthGuide = {
-      'court': '400-600 mots',
-      'moyen': '800-1000 mots',
-      'long': '1500-2000 mots'
-    };
+    // Déterminer le nombre de mots cible
+    let targetWords;
+    if (wordCount) {
+      targetWords = `EXACTEMENT ${wordCount} mots`;
+    } else {
+      const lengthGuide = {
+        'court': '500 mots',
+        'moyen': '1000 mots',
+        'long': '2000 mots'
+      };
+      targetWords = lengthGuide[length] || '1000 mots';
+    }
 
     const prompt = `Tu es un expert en intelligence artificielle et en rédaction de contenu technique.
 
 Génère un article de blog complet et professionnel sur le sujet suivant : "${topic}"
 
-Catégorie : ${category}
-Ton : ${tone}
-Longueur : ${lengthGuide[length] || '800-1000 mots'}
+CONSIGNES STRICTES :
+- Catégorie : ${category}
+- Ton : ${tone}
+- Nombre de mots : ${targetWords} (IMPÉRATIF - respecte ce nombre très précisément)
 
 L'article doit contenir :
 1. Un titre accrocheur et optimisé SEO (max 60 caractères)
@@ -63,11 +68,13 @@ L'article doit contenir :
 
 Le contenu doit être au format Markdown et doit être informatif, engageant et accessible.
 
+⚠️ IMPORTANT : Le contenu principal doit faire ${targetWords}. Compte bien les mots avant de répondre.
+
 Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
 {
   "title": "Le titre de l'article",
   "excerpt": "L'extrait court",
-  "content": "Le contenu complet en Markdown",
+  "content": "Le contenu complet en Markdown (${targetWords})",
   "tags": ["tag1", "tag2", "tag3"],
   "metaDescription": "Description SEO de 150-160 caractères"
 }`;
@@ -75,11 +82,11 @@ Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: 'Tu es un expert rédacteur d\'articles sur l\'IA. Tu réponds toujours avec un JSON valide.'
+            content: 'Tu es un expert rédacteur d\'articles sur l\'IA. Tu réponds toujours avec un JSON valide. Tu respectes STRICTEMENT le nombre de mots demandé.'
           },
           {
             role: 'user',
@@ -87,11 +94,11 @@ Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
           }
         ],
         temperature: 0.7,
-        max_tokens: 3000
+        max_tokens: wordCount ? Math.min(wordCount * 2, 4000) : 3000
       },
       {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${this.openaiKey}`,
           'Content-Type': 'application/json'
         }
       }
@@ -107,28 +114,30 @@ Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
     throw new Error('Format de réponse invalide');
   }
 
-  async generateWithAnthropic(topic, category, tone, length) {
-    // Si l'API Key n'est pas configurée, utiliser le mode démo
-    if (!this.apiKey) {
-      console.log('Anthropic API Key non configurée, utilisation du mode démo');
-      return this.generateDemoArticle(topic, category);
-    }
-
+  async generateWithAnthropic(topic, category, tone, length, wordCount) {
     const axios = require('axios');
 
-    const lengthGuide = {
-      'court': '400-600 mots',
-      'moyen': '800-1000 mots',
-      'long': '1500-2000 mots'
-    };
+    // Déterminer le nombre de mots cible
+    let targetWords;
+    if (wordCount) {
+      targetWords = `EXACTEMENT ${wordCount} mots`;
+    } else {
+      const lengthGuide = {
+        'court': '500 mots',
+        'moyen': '1000 mots',
+        'long': '2000 mots'
+      };
+      targetWords = lengthGuide[length] || '1000 mots';
+    }
 
     const prompt = `Tu es un expert en intelligence artificielle et en rédaction de contenu technique.
 
 Génère un article de blog complet et professionnel sur le sujet suivant : "${topic}"
 
-Catégorie : ${category}
-Ton : ${tone}
-Longueur : ${lengthGuide[length] || '800-1000 mots'}
+CONSIGNES STRICTES :
+- Catégorie : ${category}
+- Ton : ${tone}
+- Nombre de mots : ${targetWords} (IMPÉRATIF - respecte ce nombre très précisément)
 
 L'article doit contenir :
 1. Un titre accrocheur et optimisé SEO (max 60 caractères)
@@ -140,11 +149,13 @@ L'article doit contenir :
 
 Le contenu doit être au format Markdown et doit être informatif, engageant et accessible.
 
+⚠️ IMPORTANT : Le contenu principal doit faire ${targetWords}. Compte bien les mots avant de répondre.
+
 Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
 {
   "title": "Le titre de l'article",
   "excerpt": "L'extrait court",
-  "content": "Le contenu complet en Markdown",
+  "content": "Le contenu complet en Markdown (${targetWords})",
   "tags": ["tag1", "tag2", "tag3"],
   "metaDescription": "Description SEO de 150-160 caractères"
 }`;
@@ -153,7 +164,7 @@ Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
       'https://api.anthropic.com/v1/messages',
       {
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
+        max_tokens: wordCount ? Math.min(wordCount * 3, 8000) : 4000,
         messages: [
           {
             role: 'user',
@@ -163,7 +174,7 @@ Retourne UNIQUEMENT un objet JSON avec cette structure exacte :
       },
       {
         headers: {
-          'x-api-key': this.apiKey,
+          'x-api-key': this.anthropicKey,
           'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json'
         }

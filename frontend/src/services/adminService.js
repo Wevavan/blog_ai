@@ -25,12 +25,13 @@ adminAPI.interceptors.request.use(
 
 export const adminService = {
   // Générer un article avec l'IA
-  generateArticle: async (topic, category, tone = 'professionnel', length = 'moyen') => {
+  generateArticle: async (topic, category, tone = 'professionnel', length = 'moyen', wordCount = null) => {
     const response = await adminAPI.post('/generate', {
       topic,
       category,
       tone,
       length,
+      wordCount,
     });
     return response.data;
   },
