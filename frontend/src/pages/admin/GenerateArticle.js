@@ -9,9 +9,7 @@ function GenerateArticle() {
     topic: '',
     category: 'IA Générale',
     tone: 'professionnel',
-    length: 'moyen',
-    useCustomWordCount: false,
-    customWordCount: '',
+    wordCount: 1000, // Nombre de mots par défaut
   });
   const [generatedArticle, setGeneratedArticle] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -36,17 +34,11 @@ function GenerateArticle() {
     { value: 'académique', label: 'Académique' },
   ];
 
-  const lengths = [
-    { value: 'court', label: 'Court (500 mots)' },
-    { value: 'moyen', label: 'Moyen (1000 mots)' },
-    { value: 'long', label: 'Long (2000 mots)' },
-  ];
-
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: name === 'wordCount' ? parseInt(value) || 0 : value,
     });
   };
 
@@ -57,17 +49,12 @@ function GenerateArticle() {
     setGeneratedArticle(null);
 
     try {
-      // Déterminer le nombre de mots à utiliser
-      const wordCount = formData.useCustomWordCount && formData.customWordCount
-        ? parseInt(formData.customWordCount)
-        : null;
-
       const response = await adminService.generateArticle(
         formData.topic,
         formData.category,
         formData.tone,
-        formData.length,
-        wordCount
+        'moyen', // Envoyé pour compatibilité backend
+        formData.wordCount
       );
       setGeneratedArticle(response.data);
     } catch (err) {
@@ -165,51 +152,22 @@ function GenerateArticle() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="length">Longueur</label>
-              <select
-                id="length"
-                name="length"
-                value={formData.length}
-                onChange={handleChange}
-                disabled={formData.useCustomWordCount}
-              >
-                {lengths.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginTop: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                name="useCustomWordCount"
-                checked={formData.useCustomWordCount}
-                onChange={handleChange}
-              />
-              <span>Nombre de mots personnalisé</span>
-            </label>
-            {formData.useCustomWordCount && (
+              <label htmlFor="wordCount">Nombre de mots *</label>
               <input
                 type="number"
-                name="customWordCount"
-                value={formData.customWordCount}
+                id="wordCount"
+                name="wordCount"
+                value={formData.wordCount}
                 onChange={handleChange}
-                placeholder="Ex: 1500"
+                placeholder="Ex: 1000"
                 min="100"
                 max="5000"
-                style={{ marginTop: '10px' }}
                 required
               />
-            )}
-            {formData.useCustomWordCount && (
               <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
-                Entrez le nombre exact de mots souhaité (100-5000). L'IA respectera ce nombre très précisément.
+                Suggestions : 500 (court), 1000 (moyen), 2000 (long) ou entrez votre propre nombre (100-5000)
               </p>
-            )}
+            </div>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
